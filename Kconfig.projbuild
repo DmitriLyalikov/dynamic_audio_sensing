@@ -1,0 +1,2 @@
+source "components/mic_input/Kconfig"
+source "components/dsp/Kconfig"

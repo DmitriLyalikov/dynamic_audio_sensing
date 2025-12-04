@@ -1,0 +1,30 @@
+menu "Dynamic Audio Sensing Configuration"
+
+config MIC_INPUT_SAMPLE_RATE
+    int "Sample rate (Hz)"
+    default 16000
+    range 8000 48000
+
+config MIC_INPUT_BUFFER_SIZE
+    int "Audio buffer size (samples)"
+    default 512
+    range 128 4096
+
+config MIC_INPUT_BUFFER_COUNT
+    int "Number of audio buffers"
+    default 4
+    range 1 16
+
+config DSP_GAIN_QUIET_X100
+    int "Gain multiplier x100 for quiet scenes (e.g., 300 = 3.0x)"
+    default 300
+
+config DSP_GAIN_SPEECH_X100
+    int "Gain multiplier x100 for speech scenes"
+    default 100
+
+config DSP_GAIN_NOISE_X100
+    int "Gain multiplier x100 for noise scenes"
+    default 50
+
+endmenu

@@ -1,2 +1,2 @@
-idf_component_register(SRCS "dynamic_audio_sensing.c"
+idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS ".")

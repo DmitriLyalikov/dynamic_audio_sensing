@@ -6,13 +6,15 @@
 #include "dsp_features.h"
 #include "esp_log.h"
 #include "esp_dsp.h"
+#include "sdkconfig.h"
 
-#define SAMPLE_COUNT 512
-#define SAMPLE_RATE 16000
+#define SAMPLE_COUNT CONFIG_MIC_INPUT_BUFFER_SIZE
+#define SAMPLE_RATE CONFIG_MIC_INPUT_SAMPLE_RATE
 
-#define GAIN_QUIET 3.0f
-#define GAIN_SPEECH 1.0f
-#define GAIN_NOISE 0.5f
+#define GAIN_QUIET  (CONFIG_DSP_GAIN_QUIET_X100 / 100.0f)
+#define GAIN_SPEECH (CONFIG_DSP_GAIN_SPEECH_X100 / 100.0f)
+#define GAIN_NOISE  (CONFIG_DSP_GAIN_NOISE_X100 / 100.0f)
+
 
 static const char *TAG = "main";
 

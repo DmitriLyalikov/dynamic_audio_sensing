@@ -3,13 +3,13 @@
 #include "esp_log.h"
 
 #define I2S_NUM I2S_NUM_0
-#define SAMPLE_RATE 16000
+#define SAMPLE_RATE CONFIG_MIC_INPUT_SAMPLE_RATE
 #define I2S_BCK_IO 26
 #define I2S_WS_IO 25
 #define I2S_DATA_IN_IO 34
 
-#define DMA_BUF_LEN 2048
-#define DMA_BUF_COUNT 4
+#define DMA_BUF_LEN CONFIG_MIC_INPUT_BUFFER_SIZE
+#define DMA_BUF_COUNT CONFIG_MIC_INPUT_BUFFER_COUNT
 
 static const char *TAG = "mic_input";
 
