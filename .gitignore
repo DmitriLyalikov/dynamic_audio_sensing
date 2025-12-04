@@ -1,0 +1,5 @@
+# Ignore build output
+/build/
+
+# Ignore IDF-managed component downloads
+/managed_components/
