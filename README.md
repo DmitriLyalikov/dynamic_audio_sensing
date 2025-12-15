@@ -64,7 +64,7 @@ The system is split into three independent execution domains:
 2. Transport pipeline (best-effort, non-real-time)
 3. Control plane (HTTP/WebSocket lifecycle)
 
-These domains communicate only via FreeRTOS queues, never via shared globals.
+These domains communicate via FreeRTOS queues.
 
 ```
 INMP441 Mic
