@@ -3,29 +3,18 @@
 > This project implements a real-time audio sensing and classification system on the ESP32 platform. It captures ambient audio using a digital MEMS microphone, performs low-power signal analysis (RMS, spectral centroid) and classifies acoustic scenes into categories such as `quiet`, `speech`, `background noise`. 
 
 
-![alt text](top-architecture.png)
+![alt text](figs/top-architecture.png)
 
 ## Goals
-
-* Monitor ambient audio with low computational and power cost
-
-* Extract features: Root Mean Square (RMS), Spectral Centroid
-
-* Classify scenes dynamically in real time
-
-* Adjust digital gain or filtering based on acoustic context
-* Optionally transmit processed audio or metadata to another ESP32 device
-
-* Enable future extensions such as EQ, ML classification, or power management
+* Capture ambient audio using a digital I2S microphone
+* Perform real-time DSP feature extraction on-device
+* Classify acoustic scenes (quiet / speech / noise) deterministically
+* Apply dynamic gain control based on acoustic context
+* Stream raw and processed audio data to a web client in real time
 
 ## Hardware Requirements
 1. ESP32 DevKit (e.g., ESP32-WROOM-32)
-
 2. INMP441 Digital MEMS microphone (I2S interface)
-
-3. Speaker (optional for playback)
-
-4. Optional: External I2S amplifier (e.g., MAX98357A)
 
 ## Development Environment
 * ESP-IDF v5.5.1
@@ -39,24 +28,63 @@
 ## File Structure
 ```
 dynamic_audio_sensing/
-├── CMakeLists.txt
 ├── main/
-│   ├── CMakeLists.txt
-│   └── dynamic_audio_sensing.c          # Main application logic
+│   └── main.c                 # System orchestration and task startup
+│
 ├── components/
 │   ├── mic_input/
-│   │   ├── CMakeLists.txt
-│   │   ├── mic_input.c                  # I2S microphone interface
-│   │   └── mic_input.h
+│   │   ├── mic_input.c/h      # I2S microphone interface
+│   │
 │   ├── dsp/
-│   │   ├── CMakeLists.txt
-│   │   ├── dsp_features.c               # RMS, spectral centroid, gain control
-│   │   └── dsp_features.h
-├── managed_components/
-│   └── espressif__esp-dsp/              # Auto-managed DSP component (via IDF)
+│   │   ├── dsp_features.c/h   # RMS, spectral centroid, gain logic
+│   │
+│   ├── audio_pipeline/
+│   │   ├── audio_frame.h      # Shared audio frame definition
+│   │   ├── sample_process.c   # Mic → DSP → queue
+│   │
+│   ├── web/
+│   │   ├── web_server.c/h     # HTTP + WebSocket server (control plane)
+│   │   ├── web_client.c/h     # Audio streaming task (data plane)
+│   │   ├── websocket_adapter.c/h  # Transport abstraction
+│   │   ├── websocket.c        # Third-party websocket implementation
+│   │   ├── websocket_server.c/h
+│   │
+│   ├── wifi_manager/
+│   │   ├── wifi_manager.c/h   # WiFi STA initialization
+│
+└── CMakeLists.txt
+
 ```
 
 ## Features & Functionality
+
+The system is split into three independent execution domains:
+
+1. DSP pipeline (real-time, high priority)
+2. Transport pipeline (best-effort, non-real-time)
+3. Control plane (HTTP/WebSocket lifecycle)
+
+These domains communicate only via FreeRTOS queues, never via shared globals.
+
+```
+INMP441 Mic
+   ↓
+I2S + DMA
+   ↓
+sample_process_task
+   ├─ RMS energy
+   ├─ Spectral centroid
+   ├─ Scene classification
+   └─ audio_frame_t*
+          ↓
+     audio_frame_queue
+          ↓
+     web_client_task
+          ↓
+   WebSocket binary stream
+          ↓
+   Browser visualization
+```
 ### Signal Acquisition
 * Uses I2S interface to receive 24-bit audio samples from the INMP441 microphone
 * Samples at 16 kHz with 512-sample buffers (~32 ms window)
@@ -81,28 +109,32 @@ Real-Time Gain Adjustment
 * Speech: 1.0x
 
 * Noise: 0.5x
-Wireless Transmission (Optional)
 
-### Wireless Transmission (Optional)
-* Scene metadata or audio samples can be transmitted over:
+## Usage
+1. Clone the repository:
+```bash
+git clone https://github.com/DmitriLyalikov/dynamic_audio_sensing.git
+cd dynamic_audio_sensing
+```
+2. Set up the ESP-IDF environment:
+```bash
+idf.py add-dependency espressif/esp-dsp
+```
 
-* ESP-NOW (preferred for low-latency peer-to-peer)
+3. Configure WiFi credentials:
+```bash
+idf.py menuconfig
+```
 
-* BLE (suitable for metadata or light streaming)
+![alt text](figs/wifi-setup.png)
 
-`On the receiving ESP32, audio can be:`
-1. Played back via I2S DAC
+4. Build and flash the firmware:
+```bash
+idf.py build flash monitor
+```
 
-2. Adjusted based on transmitted scene classification
+6. Access the web interface:
+* Open browser at logged ESP32 IP address with client on same network
+* VIew waveform, features and classification.
 
-### Techniques Used
 
-* ESP-DSP FFT (dsps_fft2r) for spectral analysis
-
-* Windowing (Hanning) for FFT accuracy
-
-* Real-time signal processing on microcontroller without OS delay
-
-* Dynamic parameter control based on audio classification
-
-* Modular ESP-IDF component structure
