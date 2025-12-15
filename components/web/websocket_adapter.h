@@ -7,7 +7,6 @@ extern "C" {
 void websocket_start(void);
 void websocket_stop(void);
 
-/* Transport-level binary send */
 void websocket_send_binary(const void *data, size_t len);
 
 #ifdef __cplusplus

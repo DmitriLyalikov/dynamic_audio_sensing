@@ -7,28 +7,20 @@
 extern "C" {
 #endif
 
-/* -------------------------------------------------------------------------- */
-/*                               Constants                                    */
-/* -------------------------------------------------------------------------- */
-
+// Constants                                   
 #define AUDIO_FRAME_MAGIC 0x41554430  /* "AUD0" */
 
-/* -------------------------------------------------------------------------- */
-/*                              Scene Labels                                  */
-/* -------------------------------------------------------------------------- */
-
+// Scene Labels                                  
 typedef enum {
     SCENE_QUIET = 0,
     SCENE_SPEECH,
     SCENE_NOISE
 } audio_scene_t;
 
-/* -------------------------------------------------------------------------- */
-/*                          Audio Frame Structure                              */
-/* -------------------------------------------------------------------------- */
+// Audio Frame Structure                             
 /*
  * This structure represents one processed audio frame and associated metadata.
- * It is passed between tasks (DSP → transport) via FreeRTOS queues.
+ * It is passed between tasks (DSP -> transport) via FreeRTOS queues.
  *
  * Ownership rules:
  *  - Producer allocates audio_frame_t
@@ -39,20 +31,20 @@ typedef enum {
  */
 
 typedef struct {
-    uint32_t magic;           /* Sanity check value */
-    uint32_t sample_count;    /* Number of samples per channel */
+    uint32_t magic;          
+    uint32_t sample_count;  
 
-    /* Extracted features */
+    // Extracted features 
     float rms;
     float centroid;
 
-    /* Classification result */
+    // Classification result 
     audio_scene_t scene;
     float gain;
 
-    /* Audio payload (16-bit PCM) */
-    int16_t *samples_in;      /* Raw microphone input */
-    int16_t *samples_out;     /* Gain-adjusted output */
+    // Audio payload (16-bit PCM) 
+    int16_t *samples_in;      // Raw microphone input 
+    int16_t *samples_out;     // Gain-adjusted output
 } audio_frame_t;
 
 #ifdef __cplusplus

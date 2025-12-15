@@ -1,7 +1,10 @@
-/*
-  web_server.c - simple web server to serve a webpage and handle websockets
-
-*/
+/**
+ * @file web_server.c
+ * @author Dmitri Lyalikov (dvl2013@nyu.edu)
+ * @brief Implements the web server that serves web pages and handles WebSocket connections
+ * @version 0.1
+ * @date 2025-12-15
+ */
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -40,7 +43,6 @@ void websocket_callback(uint8_t num,WEBSOCKET_TYPE_t type,char* msg,uint64_t len
 		case WEBSOCKET_TEXT:
 			ESP_LOGI(TAG, "Received text message from client %d (len=%" PRIu32 ")", 
 					num, (uint32_t)len);
-			/* RX path unused in this design */
 			break;
 		case WEBSOCKET_BIN:
 			ESP_LOGI(TAG,"client %i sent binary message of size %"PRIu32":\n%s",num,(uint32_t)len,msg);

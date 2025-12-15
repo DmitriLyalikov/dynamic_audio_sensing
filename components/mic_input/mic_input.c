@@ -1,3 +1,16 @@
+/**
+ * @file mic_input.c
+ * @author Dmitri Lyalikov (dvl2013@nyu.edu)
+ * @brief Implements microphone input using I2S interface. Uses INMP441 microphone connected on:
+ *       BCK  - GPIO26
+ *       WS   - GPIO25
+ *       DATA - GPIO34
+ * 
+ * @version 0.1
+ * @date 2025-12-15
+ */
+
+
 #include "mic_input.h"
 #include "driver/i2s.h"
 #include "esp_log.h"

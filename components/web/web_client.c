@@ -1,3 +1,11 @@
+/**
+ * @file web_client.c
+ * @author Dmitri Lyalikov (dvl2013@nyu.edu)
+ * @brief Implements the web client task that sends audio frames over WebSocket
+ * @version 0.1
+ * @date 2025-12-15
+ */
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -12,15 +20,10 @@
 
 static const char *TAG = "web_client";
 
-/* -------------------------------------------------------------------------- */
-/*                      External queue handle                                  */
-/* -------------------------------------------------------------------------- */
-/* Created in main.c */
+// External queue handle                                
 extern QueueHandle_t audio_frame_queue;
 
-/* -------------------------------------------------------------------------- */
-/*                    WebSocket packet format                                  */
-/* -------------------------------------------------------------------------- */
+// WebSocket packet format                                  
 /*
  * [Header]
  *  uint32_t magic
@@ -44,10 +47,7 @@ typedef struct __attribute__((packed)) {
     uint8_t scene;
 } ws_audio_header_t;
 
-/* -------------------------------------------------------------------------- */
-/*                         Serialization helper                                */
-/* -------------------------------------------------------------------------- */
-
+// Serializatio
 static size_t serialize_audio_frame(
     const audio_frame_t *frame,
     uint8_t *out_buf,
@@ -82,23 +82,18 @@ static size_t serialize_audio_frame(
     return total_size;
 }
 
-/* -------------------------------------------------------------------------- */
-/*                          Web client task                                    */
-/* -------------------------------------------------------------------------- */
-
+// Web client task                                  
 void web_client_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "Web client task started");
 
-    /* Static transmit buffer (avoids heap churn) */
+    // Static transmit buffer
     static uint8_t tx_buffer[4096];
 
     while (1) {
         audio_frame_t *frame = NULL;
 
-        /* ------------------------------------------------------------------ */
-        /* Wait for processed audio frame                                     */
-        /* ------------------------------------------------------------------ */
+        // Wait for processed audio frame
         if (xQueueReceive(audio_frame_queue, &frame, portMAX_DELAY) != pdTRUE) {
             continue;
         }
@@ -108,9 +103,7 @@ void web_client_task(void *pvParameters)
             goto cleanup;
         }
 
-        /* ------------------------------------------------------------------ */
-        /* Serialize frame                                                    */
-        /* ------------------------------------------------------------------ */
+        // Serialize frame      
         size_t pkt_len = serialize_audio_frame(
             frame, tx_buffer, sizeof(tx_buffer));
 
@@ -119,15 +112,11 @@ void web_client_task(void *pvParameters)
             goto cleanup;
         }
 
-        /* ------------------------------------------------------------------ */
-        /* Send over WebSocket                                                */
-        /* ------------------------------------------------------------------ */
+        // Send over WebSocket
         ws_server_send_bin_all((char *)tx_buffer, pkt_len);
 
 cleanup:
-        /* ------------------------------------------------------------------ */
-        /* Free frame + buffers                                               */
-        /* ------------------------------------------------------------------ */
+        // Free frame + buffers
         if (frame) {
             free(frame->samples_in);
             free(frame->samples_out);

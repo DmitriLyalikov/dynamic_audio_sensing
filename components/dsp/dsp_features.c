@@ -1,3 +1,12 @@
+/**
+ * @file dsp_features.c
+ * @author Dmitri Lyalikov (dvl2013@nyu.edu)
+ * @brief Implements DSP features such as RMS and spectral centroid calculations using ESP-DSP
+ * @version 0.1
+ * @date 2025-12-15
+ */
+
+
 #include "dsp_features.h"
 #include <math.h>
 #include <stdlib.h>
@@ -33,7 +42,7 @@ float dsp_compute_spectral_centroid_fft(const int32_t *samples, size_t count, in
         buf[i] = (float)(samples[i] >> 8);
     }
 
-    // Prepare FFT: real → complex radix‑2
+    // Prepare FFT: real to complex radix-2
     // We need buffer of length 2*count: [Re0, Im0, Re1, Im1, ...]
     float *fft_buf = malloc(sizeof(float) * 2 * count);
     if (!fft_buf) {
@@ -46,7 +55,7 @@ float dsp_compute_spectral_centroid_fft(const int32_t *samples, size_t count, in
         fft_buf[2*i + 1] = 0.0f;
     }
 
-    // Initialize FFT tables (only once ideally — but safe to call)
+    // Initialize FFT tables 
     dsps_fft2r_init_fc32(NULL, count);
 
     // Perform FFT in-place on fft_buf
