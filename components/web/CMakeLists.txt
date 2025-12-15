@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "web_client.c"
+        "web_server.c"
+        "websocket.c"
+        "websocket_server.c"
+    INCLUDE_DIRS
+        "."
+    EMBED_FILES
+        "../../html/root.html"
+        "../../html/main.js"
+        "../../html/main.css"
+        "../../html/error.html"
+        "../../html/favicon.ico"
+    REQUIRES
+        esp_http_server
+        audio_pipeline
+        lwip mbedtls
+)

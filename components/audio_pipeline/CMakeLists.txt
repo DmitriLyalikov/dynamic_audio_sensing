@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "sample_process.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        mic_input
+        dsp
+        esp-dsp
+)

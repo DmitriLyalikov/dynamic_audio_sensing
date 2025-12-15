@@ -27,4 +27,6 @@ config DSP_GAIN_NOISE_X100
     int "Gain multiplier x100 for noise scenes"
     default 50
 
+
+
 endmenu

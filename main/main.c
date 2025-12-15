@@ -1,65 +1,124 @@
 #include <stdio.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
-#include "mic_input.h"
-#include "dsp_features.h"
 #include "esp_log.h"
-#include "esp_dsp.h"
+#include "esp_netif.h"
+#include "nvs_flash.h"
+#include "mdns.h"
+
 #include "sdkconfig.h"
 
-#define SAMPLE_COUNT CONFIG_MIC_INPUT_BUFFER_SIZE
-#define SAMPLE_RATE CONFIG_MIC_INPUT_SAMPLE_RATE
+#include "wifi_manager.h"
+#include "web_server.h"
+#include "web_client.h"
+#include "audio_frame.h"
+#include "websocket_server.h"
 
-#define GAIN_QUIET  (CONFIG_DSP_GAIN_QUIET_X100 / 100.0f)
-#define GAIN_SPEECH (CONFIG_DSP_GAIN_SPEECH_X100 / 100.0f)
-#define GAIN_NOISE  (CONFIG_DSP_GAIN_NOISE_X100 / 100.0f)
-
+/* -------------------------------------------------------------------------- */
+/*                                  Globals                                   */
+/* -------------------------------------------------------------------------- */
 
 static const char *TAG = "main";
 
-/**
- * @brief Simple scene classifier based on RMS thresholds
- */
-const char *classify_scene(float rms, float centroid) {
-    if (rms < 0.01f) {
-        return "quiet";
-    } else if (centroid > 300 && centroid < 3500) {
-        return "speech";
-    } else {
-        return "background noise";
+/* Shared queue: DSP → transport */
+QueueHandle_t audio_frame_queue;
+
+/* -------------------------------------------------------------------------- */
+/*                           Forward declarations                              */
+/* -------------------------------------------------------------------------- */
+
+void sample_process_task(void *pvParameters);
+
+/* -------------------------------------------------------------------------- */
+/*                               Init helpers                                  */
+/* -------------------------------------------------------------------------- */
+
+static esp_err_t init_nvs(void)
+{
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+        ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
     }
+    return ret;
 }
 
-void app_main(void) {
-    mic_input_init();
-    int32_t audio_buffer[SAMPLE_COUNT];
+static void init_mdns(void)
+{
+    ESP_ERROR_CHECK(mdns_init());
+    ESP_ERROR_CHECK(mdns_hostname_set(CONFIG_MDNS_HOSTNAME));
+    ESP_LOGI(TAG, "mDNS hostname set to: %s", CONFIG_MDNS_HOSTNAME);
 
-    dsps_fft2r_init_fc32(NULL, SAMPLE_COUNT);  // Initialize FFT
+    ESP_ERROR_CHECK(
+        mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0)
+    );
+}
 
-    while (1) {
-        size_t got = mic_input_read(audio_buffer, SAMPLE_COUNT);
-        if (got == SAMPLE_COUNT) {
-            float rms = dsp_compute_rms(audio_buffer, SAMPLE_COUNT);
-            float centroid = dsp_compute_spectral_centroid_fft(audio_buffer, SAMPLE_COUNT, SAMPLE_RATE);
-            const char *scene = classify_scene(rms, centroid);
+/* -------------------------------------------------------------------------- */
+/*                                   app_main                                  */
+/* -------------------------------------------------------------------------- */
 
-            // Adjust gain based on scene
-            float gain = 1.0f;
-            if (strcmp(scene, "quiet") == 0) {
-                gain = GAIN_QUIET;
-            } else if (strcmp(scene, "speech") == 0) {
-                gain = GAIN_SPEECH;
-            } else if (strcmp(scene, "background noise") == 0) {
-                gain = GAIN_NOISE;
-            }
+void app_main(void)
+{
+    ESP_LOGI(TAG, "Starting Dynamic Audio Sensing system...");
 
-            dsp_apply_gain(audio_buffer, SAMPLE_COUNT, gain);
+    /* 1. Initialize NVS */
+    ESP_ERROR_CHECK(init_nvs());
 
-            // Now audio_buffer contains gain-adjusted samples
-            ESP_LOGI(TAG, "RMS: %.5f | Centroid: %.1f Hz | Scene: %s | Gain: %.1fx",
-                    rms, centroid, scene, gain);
-        }
-        vTaskDelay(pdMS_TO_TICKS(200));
+    /* 2. Initialize WiFi (blocking until connected) */
+    ESP_ERROR_CHECK(wifi_manager_init());
+
+    /* 3. Initialize mDNS */
+    init_mdns();
+
+    /* 4. Create audio frame queue (DSP → Web) */
+    audio_frame_queue = xQueueCreate(4, sizeof(audio_frame_t *));
+    configASSERT(audio_frame_queue);
+
+    /* 5. Start WebSocket server core */
+    ws_server_start();
+
+    /* 6. Start HTTP / WebSocket server task */
+    xTaskCreate(
+        server_task,
+        "server_task",
+        4096,
+        NULL,
+        5,
+        NULL
+    );
+
+    /* 7. Log IP address */
+    esp_netif_ip_info_t ip_info;
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif && esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        ESP_LOGI(TAG, "ESP32 IP Address: " IPSTR, IP2STR(&ip_info.ip));
     }
+
+    /* 8. Start audio processing task (mic + DSP + classification) */
+    xTaskCreate(
+        sample_process_task,
+        "sample_process",
+        8192,
+        NULL,
+        6,     // higher priority (real-time)
+        NULL
+    );
+
+    /* 9. Start WebSocket client task (transport only) */
+    xTaskCreate(
+        web_client_task,
+        "web_client",
+        4096,
+        NULL,
+        5,
+        NULL
+    );
+
+    ESP_LOGI(TAG, "System initialization complete.");
 }

@@ -2,7 +2,8 @@
 ## Overview
 > This project implements a real-time audio sensing and classification system on the ESP32 platform. It captures ambient audio using a digital MEMS microphone, performs low-power signal analysis (RMS, spectral centroid) and classifies acoustic scenes into categories such as `quiet`, `speech`, `background noise`. 
 
->> The system dynamically adjusts gain or equalization settings based on classified scene and optionally transmits audio data wireleslly using ESP-NOW to another ESP32, which plays it back through a speaker.
+
+![alt text](top-architecture.png)
 
 ## Goals
 

@@ -3,3 +3,5 @@
 
 # Ignore IDF-managed component downloads
 /managed_components/
+# Ignore CMake build files
+sdkconfig.old

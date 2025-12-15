@@ -9,7 +9,7 @@ float dsp_compute_rms(const int32_t *samples, size_t count) {
 
     double sum_sq = 0.0;
     for (size_t i = 0; i < count; ++i) {
-        int32_t sample = samples[i] >> 8;  // Convert 32‑bit MSB padded → 24‑bit
+        int32_t sample = samples[i] >> 8;  // Convert 32‑bit MSB padded to 24‑bit
         sum_sq += (double)sample * sample;
     }
 
@@ -28,13 +28,10 @@ float dsp_compute_spectral_centroid_fft(const int32_t *samples, size_t count, in
     float *buf = malloc(sizeof(float) * count);
     if (!buf) return 0.0f;
 
-    // Convert from 32-bit signed int → float (shift down 8 bits if using 24-bit mic data)
+    // Convert from 32-bit signed int to float (shift down 8 bits if using 24-bit mic data)
     for (size_t i = 0; i < count; i++) {
         buf[i] = (float)(samples[i] >> 8);
     }
-
-    // Optionally apply window (e.g. Hanning) to buf — improves spectral clarity
-    // (Not shown here)
 
     // Prepare FFT: real → complex radix‑2
     // We need buffer of length 2*count: [Re0, Im0, Re1, Im1, ...]
@@ -76,7 +73,6 @@ float dsp_compute_spectral_centroid_fft(const int32_t *samples, size_t count, in
     free(buf);
     free(fft_buf);
 
-    // Optionally deinit: dsps_fft2r_deinit_fc32();
     return result;
 }
 
