@@ -137,4 +137,6 @@ idf.py build flash monitor
 * Open browser at logged ESP32 IP address with client on same network
 * VIew waveform, features and classification.
 
+![alt text](figs/webserver.png)
+
 
